@@ -14,9 +14,96 @@
 
     let state = {
         stock: {},       // productId -> { cases, pieces }
-        dispatches: [],  // { id, productId, cases, pieces, totalPieces, notes, timestamp, type }
+        dispatches: [],  // { id, productId, cases, pieces, totalPieces, notes, timestamp, type, user }
         initialized: false
     };
+
+    // ==========================================
+    // AUTH MANAGEMENT
+    // ==========================================
+    let currentUser = null; // { username, role, displayName }
+
+    function isLoggedIn() {
+        return currentUser !== null;
+    }
+
+    function isAdmin() {
+        return currentUser && currentUser.role === 'admin';
+    }
+
+    function getSessionUser() {
+        try {
+            const saved = sessionStorage.getItem('aashika_current_user');
+            if (saved) return JSON.parse(saved);
+        } catch (e) {}
+        return null;
+    }
+
+    function setSessionUser(user) {
+        try {
+            if (user) {
+                sessionStorage.setItem('aashika_current_user', JSON.stringify(user));
+            } else {
+                sessionStorage.removeItem('aashika_current_user');
+            }
+        } catch (e) {}
+    }
+
+    async function attemptLogin(username, password) {
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (data.success) {
+                currentUser = data.user;
+                setSessionUser(currentUser);
+                return { success: true };
+            } else {
+                return { success: false, error: data.error || 'Invalid credentials' };
+            }
+        } catch (e) {
+            return { success: false, error: 'Server error. Please try again.' };
+        }
+    }
+
+    function logout() {
+        currentUser = null;
+        setSessionUser(null);
+        showLoginScreen();
+    }
+
+    function showLoginScreen() {
+        document.getElementById('login-overlay').classList.add('active');
+        document.getElementById('login-username').value = '';
+        document.getElementById('login-password').value = '';
+        document.getElementById('login-error').style.display = 'none';
+        document.getElementById('login-username').focus();
+    }
+
+    function hideLoginScreen() {
+        document.getElementById('login-overlay').classList.remove('active');
+    }
+
+    function updateUIForUser() {
+        if (!currentUser) return;
+
+        // Update sidebar user indicator
+        const userEl = document.getElementById('sidebar-user');
+        userEl.style.display = 'flex';
+        document.getElementById('sidebar-user-avatar').textContent = currentUser.displayName.charAt(0);
+        document.getElementById('sidebar-user-name').textContent = currentUser.displayName;
+        document.getElementById('sidebar-user-role').textContent = currentUser.role === 'admin' ? 'Administrator' : 'Staff';
+
+        // Show/hide admin nav
+        const adminNav = document.getElementById('nav-admin');
+        adminNav.style.display = isAdmin() ? 'flex' : 'none';
+
+        // Show logout button
+        document.getElementById('btn-logout').style.display = 'flex';
+    }
 
     // ==========================================
     // DATA HELPERS
@@ -77,17 +164,40 @@
     }
 
     // ==========================================
-    // PERSISTENCE
+    // PERSISTENCE (Server-side via API)
     // ==========================================
-    function saveState() {
+    async function saveState() {
+        try {
+            // Save to server
+            await fetch('/api/state', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(state)
+            });
+        } catch (e) {
+            console.error('Failed to save state to server:', e);
+        }
+        // Also save to localStorage as a fallback
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        } catch (e) {
-            console.error('Failed to save state:', e);
-        }
+        } catch (e) {}
     }
 
-    function loadState() {
+    async function loadStateFromServer() {
+        try {
+            const res = await fetch('/api/state');
+            const data = await res.json();
+            if (data && data.initialized) {
+                state = data;
+                return true;
+            }
+        } catch (e) {
+            console.error('Failed to load state from server:', e);
+        }
+        return false;
+    }
+
+    function loadStateFromLocal() {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
@@ -98,24 +208,30 @@
                 }
             }
         } catch (e) {
-            console.error('Failed to load state:', e);
+            console.error('Failed to load state from localStorage:', e);
         }
         return false;
     }
 
-    function initializeState() {
-        if (!loadState()) {
-            // First run - initialize with catalog defaults
-            state.stock = {};
-            PRODUCT_CATALOG.forEach(p => {
-                state.stock[p.id] = {
-                    cases: p.initialStockCases,
-                    pieces: p.initialStockPieces
-                };
-            });
-            state.dispatches = [];
-            state.initialized = true;
-            saveState();
+    async function initializeState() {
+        // Try server first, then localStorage fallback
+        const serverLoaded = await loadStateFromServer();
+        if (!serverLoaded) {
+            const localLoaded = loadStateFromLocal();
+            if (!localLoaded) {
+                // First run - initialize with catalog defaults
+                state.stock = {};
+                PRODUCT_CATALOG.forEach(p => {
+                    state.stock[p.id] = {
+                        cases: p.initialStockCases,
+                        pieces: p.initialStockPieces
+                    };
+                });
+                state.dispatches = [];
+                state.initialized = true;
+            }
+            // Save to server for sync
+            await saveState();
         }
     }
 
@@ -129,13 +245,17 @@
         history: { title: 'Dispatch History', el: 'view-history' },
         restock: { title: 'Restock', el: 'view-restock' },
         retailing: { title: 'Daily Retailing', el: 'view-retailing' },
-        leakage: { title: 'Leakage & Breakage', el: 'view-leakage' }
+        leakage: { title: 'Leakage & Breakage', el: 'view-leakage' },
+        admin: { title: 'Admin Panel', el: 'view-admin' }
     };
 
     let currentView = 'dashboard';
 
     function switchView(viewName) {
         if (!views[viewName]) return;
+        // Block non-admin from admin view
+        if (viewName === 'admin' && !isAdmin()) return;
+
         currentView = viewName;
 
         // Update nav
@@ -166,6 +286,7 @@
             case 'restock': renderRestock(); break;
             case 'retailing': renderRetailing(); break;
             case 'leakage': renderLeakage(); break;
+            case 'admin': renderAdmin(); break;
         }
     }
 
@@ -402,6 +523,7 @@
             const qtyText = [];
             if (d.cases > 0) qtyText.push(`${d.cases}c`);
             if (d.pieces > 0) qtyText.push(`${d.pieces}p`);
+            const userTag = d.user ? ` · by ${d.user}` : '';
             return `
                 <div class="dispatch-entry">
                     <div class="dispatch-entry-img">
@@ -409,7 +531,7 @@
                     </div>
                     <div class="dispatch-entry-info">
                         <div class="dispatch-entry-name">${p.name} ${p.volume}</div>
-                        <div class="dispatch-entry-detail">${d.notes || 'No notes'}</div>
+                        <div class="dispatch-entry-detail">${d.notes || 'No notes'}${userTag}</div>
                     </div>
                     <span class="dispatch-entry-qty">${qtyText.join(' ')}</span>
                     <span class="dispatch-entry-time">${formatTime(d.timestamp)}</span>
@@ -480,12 +602,14 @@
                     ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'
                     : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>';
 
+                const userTag = d.user ? ` · by ${d.user}` : '';
+
                 return `
                     <div class="history-entry">
                         <div class="history-entry-icon ${iconClass}">${iconSvg}</div>
                         <div class="history-entry-info">
                             <div class="history-entry-title">${p.name} ${p.volume}</div>
-                            <div class="history-entry-meta">${formatTime(d.timestamp)}${d.notes ? ' · ' + d.notes : ''}${isLeakage ? ' <span class="leakage-type-tag tag-' + d.type + '">' + d.type + '</span>' : ''}</div>
+                            <div class="history-entry-meta">${formatTime(d.timestamp)}${d.notes ? ' · ' + d.notes : ''}${userTag}${isLeakage ? ' <span class="leakage-type-tag tag-' + d.type + '">' + d.type + '</span>' : ''}</div>
                         </div>
                         <span class="history-entry-qty ${qtyClass}">${prefix} ${qtyParts.join(', ')}</span>
                     </div>`;
@@ -532,6 +656,7 @@
             const qtyParts = [];
             if (d.cases > 0) qtyParts.push(`${d.cases}c`);
             if (d.pieces > 0) qtyParts.push(`${d.pieces}p`);
+            const userTag = d.user ? ` · by ${d.user}` : '';
             return `
                 <div class="dispatch-entry">
                     <div class="dispatch-entry-img">
@@ -539,7 +664,7 @@
                     </div>
                     <div class="dispatch-entry-info">
                         <div class="dispatch-entry-name">${p.name} ${p.volume}</div>
-                        <div class="dispatch-entry-detail">${d.notes || 'No notes'} · ${formatDate(d.timestamp)}</div>
+                        <div class="dispatch-entry-detail">${d.notes || 'No notes'} · ${formatDate(d.timestamp)}${userTag}</div>
                     </div>
                     <span class="dispatch-entry-qty restock-qty">+${qtyParts.join(' ')}</span>
                     <span class="dispatch-entry-time">${formatTime(d.timestamp)}</span>
@@ -585,6 +710,7 @@
             if (d.cases > 0) qtyParts.push(`${d.cases}c`);
             if (d.pieces > 0) qtyParts.push(`${d.pieces}p`);
             const typeTag = `<span class="leakage-type-tag tag-${d.type}">${d.type}</span>`;
+            const userTag = d.user ? ` · by ${d.user}` : '';
             return `
                 <div class="dispatch-entry">
                     <div class="dispatch-entry-img">
@@ -592,7 +718,7 @@
                     </div>
                     <div class="dispatch-entry-info">
                         <div class="dispatch-entry-name">${p.name} ${p.volume} ${typeTag}</div>
-                        <div class="dispatch-entry-detail">${d.notes || 'No notes'} · ${formatDate(d.timestamp)}</div>
+                        <div class="dispatch-entry-detail">${d.notes || 'No notes'} · ${formatDate(d.timestamp)}${userTag}</div>
                     </div>
                     <span class="dispatch-entry-qty leakage-qty">−${qtyParts.join(' ')}</span>
                     <span class="dispatch-entry-time">${formatTime(d.timestamp)}</span>
@@ -736,6 +862,7 @@
             const typeTag = isTakeout
                 ? '<span class="retail-type-tag tag-takeout">TAKEN</span>'
                 : '<span class="retail-type-tag tag-return">RETURNED</span>';
+            const userTag = d.user ? ` · by ${d.user}` : '';
             return `
                 <div class="dispatch-entry">
                     <div class="dispatch-entry-img">
@@ -743,12 +870,272 @@
                     </div>
                     <div class="dispatch-entry-info">
                         <div class="dispatch-entry-name">${p.name} ${p.volume} ${typeTag}</div>
-                        <div class="dispatch-entry-detail">${d.notes || 'No notes'} · ${formatDate(d.timestamp)}</div>
+                        <div class="dispatch-entry-detail">${d.notes || 'No notes'} · ${formatDate(d.timestamp)}${userTag}</div>
                     </div>
                     <span class="dispatch-entry-qty ${qtyClass}">${prefix}${qtyParts.join(' ')}</span>
                     <span class="dispatch-entry-time">${formatTime(d.timestamp)}</span>
                 </div>`;
         }).join('');
+    }
+
+    // ==========================================
+    // RENDER: ADMIN PANEL
+    // ==========================================
+    async function renderAdmin() {
+        if (!isAdmin()) return;
+
+        const today = getToday();
+
+        // Fetch users list
+        let users = [];
+        try {
+            const res = await fetch('/api/users');
+            users = await res.json();
+        } catch (e) {
+            users = [];
+        }
+
+        // Stats
+        document.getElementById('admin-stat-users').textContent = users.length;
+        document.getElementById('admin-stat-total-txns').textContent = state.dispatches.length;
+        document.getElementById('admin-stat-today-txns').textContent = state.dispatches.filter(d => d.timestamp.startsWith(today)).length;
+
+        // User Activity Grid
+        const userGrid = document.getElementById('admin-user-grid');
+        const userCounts = {};
+        users.forEach(u => { userCounts[u.username] = 0; });
+        state.dispatches.forEach(d => {
+            if (d.user && userCounts[d.user] !== undefined) {
+                userCounts[d.user]++;
+            } else if (d.user) {
+                userCounts[d.user] = (userCounts[d.user] || 0) + 1;
+            }
+        });
+
+        userGrid.innerHTML = users.map(u => {
+            const count = userCounts[u.username] || 0;
+            const avatarClass = u.role === 'admin' ? 'role-admin' : '';
+            return `
+                <div class="admin-user-card">
+                    <div class="admin-user-card-avatar ${avatarClass}">${u.displayName.charAt(0)}</div>
+                    <div class="admin-user-card-info">
+                        <div class="admin-user-card-name">${u.displayName}</div>
+                        <div class="admin-user-card-role">${u.role}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div class="admin-user-card-count">${count}</div>
+                        <div class="admin-user-card-count-label">changes</div>
+                    </div>
+                </div>`;
+        }).join('');
+
+        // Populate user filter
+        const userFilter = document.getElementById('admin-filter-user');
+        const currentFilterVal = userFilter.value;
+        userFilter.innerHTML = '<option value="all">All Users</option>' + users.map(u =>
+            `<option value="${u.username}">${u.displayName}</option>`
+        ).join('');
+        userFilter.value = currentFilterVal || 'all';
+
+        // Render activity log
+        renderAdminActivityLog();
+
+        // Render user management list
+        renderAdminUsersList(users);
+    }
+
+    function renderAdminActivityLog() {
+        const userFilter = document.getElementById('admin-filter-user').value;
+        const typeFilter = document.getElementById('admin-filter-type').value;
+        const dateFilter = document.getElementById('admin-filter-date').value;
+
+        let filtered = [...state.dispatches].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        if (userFilter && userFilter !== 'all') {
+            filtered = filtered.filter(d => d.user === userFilter);
+        }
+
+        if (typeFilter && typeFilter !== 'all') {
+            filtered = filtered.filter(d => d.type === typeFilter);
+        }
+
+        if (dateFilter) {
+            filtered = filtered.filter(d => d.timestamp.startsWith(dateFilter));
+        }
+
+        // Limit to 100 entries
+        filtered = filtered.slice(0, 100);
+
+        const logEl = document.getElementById('admin-activity-log');
+
+        if (filtered.length === 0) {
+            logEl.innerHTML = `
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    <p>No activity found for these filters</p>
+                </div>`;
+            return;
+        }
+
+        logEl.innerHTML = filtered.map(d => {
+            const p = getProduct(d.productId);
+            const username = d.user || 'Unknown';
+            const initial = username.charAt(0).toUpperCase();
+            const badgeClass = username === 'admin' ? 'user-admin' : 'user-staff';
+            const actionLabel = d.type.replace('-', ' ');
+            const tagClass = `tag-${d.type}`;
+
+            const qtyParts = [];
+            if (d.cases > 0) qtyParts.push(`${d.cases}c`);
+            if (d.pieces > 0) qtyParts.push(`${d.pieces}p`);
+
+            const isDeduction = ['dispatch', 'leakage', 'breakage', 'retail-takeout'].includes(d.type);
+            const prefix = isDeduction ? '−' : '+';
+            const qtyColor = isDeduction ? 'var(--accent-danger)' : 'var(--accent-success)';
+
+            return `
+                <div class="admin-log-entry">
+                    <div class="admin-log-user-badge ${badgeClass}">${initial}</div>
+                    <div class="admin-log-info">
+                        <div class="admin-log-title">
+                            <span class="log-username">${username}</span>
+                            <span class="log-action-tag ${tagClass}">${actionLabel}</span>
+                            ${p.name} ${p.volume}
+                        </div>
+                        <div class="admin-log-meta">${d.notes || '—'} · ${formatDate(d.timestamp)}</div>
+                    </div>
+                    <span class="admin-log-qty" style="color:${qtyColor}">${prefix}${qtyParts.join(' ')}</span>
+                    <span class="admin-log-time">${formatTime(d.timestamp)}</span>
+                </div>`;
+        }).join('');
+    }
+
+    // ==========================================
+    // USER MANAGEMENT (Admin)
+    // ==========================================
+    function renderAdminUsersList(users) {
+        const listEl = document.getElementById('admin-users-list');
+        if (!users || users.length === 0) {
+            listEl.innerHTML = '<div class="empty-state"><p>No users found</p></div>';
+            return;
+        }
+
+        listEl.innerHTML = users.map(u => {
+            const isAdm = u.role === 'admin';
+            const avatarClass = isAdm ? 'is-admin' : '';
+            const roleBadgeClass = isAdm ? 'badge-admin' : 'badge-staff';
+            // Cannot remove if this is the currently logged in user
+            const isSelf = currentUser && currentUser.username === u.username;
+            const removeDisabled = isSelf ? 'disabled title="Cannot remove yourself"' : '';
+            return `
+                <div class="admin-user-row" id="user-row-${u.username}">
+                    <div class="admin-user-row-avatar ${avatarClass}">${u.displayName.charAt(0)}</div>
+                    <div class="admin-user-row-info">
+                        <div class="admin-user-row-name">${u.displayName}</div>
+                        <div class="admin-user-row-meta">
+                            <span class="admin-user-row-username">@${u.username}</span>
+                            <span class="admin-user-role-badge ${roleBadgeClass}">${u.role}</span>
+                        </div>
+                    </div>
+                    <div class="admin-user-row-actions">
+                        <button class="btn-user-action btn-user-change-pw"
+                            onclick="window.app.openChangePwDialog('${u.username}', '${u.displayName}')"
+                            title="Change password">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0110 0v4"/>
+                            </svg>
+                        </button>
+                        <button class="btn-user-action btn-user-remove" ${removeDisabled}
+                            onclick="window.app.removeUser('${u.username}', '${u.displayName}')"
+                            title="Remove user">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                                <path d="M10 11v6M14 11v6"/>
+                                <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    function openChangePwDialog(username, displayName) {
+        document.getElementById('admin-change-pw-username').textContent = username;
+        document.getElementById('admin-change-pw-input').value = '';
+        document.getElementById('admin-change-pw-overlay').style.display = 'flex';
+        setTimeout(() => document.getElementById('admin-change-pw-input').focus(), 100);
+    }
+
+    async function addUser(username, displayName, password, role) {
+        try {
+            const res = await fetch('/api/users/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, displayName, password, role })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`User "${displayName}" added successfully`, 'success');
+                // Clear form
+                document.getElementById('admin-new-username').value = '';
+                document.getElementById('admin-new-displayname').value = '';
+                document.getElementById('admin-new-password').value = '';
+                document.getElementById('admin-new-role').value = 'staff';
+                // Refresh admin view
+                await renderAdmin();
+            } else {
+                showToast(data.error || 'Failed to add user', 'error');
+            }
+        } catch (e) {
+            showToast('Server error. Please try again.', 'error');
+        }
+    }
+
+    async function removeUser(username, displayName) {
+        const confirmed = await showConfirm(
+            `Remove "${displayName}"?`,
+            `This will permanently remove the user @${username}. Their transaction history will remain in the logs.`
+        );
+        if (!confirmed) return;
+
+        try {
+            const res = await fetch('/api/users/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`User "${displayName}" removed`, 'info');
+                await renderAdmin();
+            } else {
+                showToast(data.error || 'Failed to remove user', 'error');
+            }
+        } catch (e) {
+            showToast('Server error. Please try again.', 'error');
+        }
+    }
+
+    async function changeUserPassword(username, newPassword) {
+        try {
+            const res = await fetch('/api/users/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, newPassword })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`Password for @${username} changed successfully`, 'success');
+                document.getElementById('admin-change-pw-overlay').style.display = 'none';
+                document.getElementById('admin-change-pw-input').value = '';
+            } else {
+                showToast(data.error || 'Failed to change password', 'error');
+            }
+        } catch (e) {
+            showToast('Server error. Please try again.', 'error');
+        }
     }
 
     // ==========================================
@@ -786,7 +1173,8 @@
             totalPieces: requestedPieces,
             notes: notes || '',
             timestamp: new Date().toISOString(),
-            type: 'dispatch'
+            type: 'dispatch',
+            user: currentUser ? currentUser.username : 'unknown'
         });
 
         saveState();
@@ -819,7 +1207,8 @@
             totalPieces: (cases * product.piecesPerCase) + pieces,
             notes: notes || '',
             timestamp: new Date().toISOString(),
-            type: 'restock'
+            type: 'restock',
+            user: currentUser ? currentUser.username : 'unknown'
         });
 
         saveState();
@@ -862,7 +1251,8 @@
             totalPieces: requestedPieces,
             notes: fullNote,
             timestamp: new Date().toISOString(),
-            type: type // 'leakage' or 'breakage'
+            type: type, // 'leakage' or 'breakage'
+            user: currentUser ? currentUser.username : 'unknown'
         });
 
         saveState();
@@ -903,7 +1293,8 @@
             totalPieces: requestedPieces,
             notes: notes || '',
             timestamp: new Date().toISOString(),
-            type: 'retail-takeout'
+            type: 'retail-takeout',
+            user: currentUser ? currentUser.username : 'unknown'
         });
 
         saveState();
@@ -936,7 +1327,8 @@
             totalPieces: (cases * product.piecesPerCase) + pieces,
             notes: notes || '',
             timestamp: new Date().toISOString(),
-            type: 'retail-return'
+            type: 'retail-return',
+            user: currentUser ? currentUser.username : 'unknown'
         });
 
         saveState();
@@ -972,8 +1364,9 @@
                     const qtyParts = [];
                     if (d.cases > 0) qtyParts.push(`${d.cases}c`);
                     if (d.pieces > 0) qtyParts.push(`${d.pieces}p`);
+                    const userTag = d.user ? ` (${d.user})` : '';
                     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.85rem;">
-                        <span style="color:var(--text-muted)">${formatDate(d.timestamp)} ${formatTime(d.timestamp)}</span>
+                        <span style="color:var(--text-muted)">${formatDate(d.timestamp)} ${formatTime(d.timestamp)}${userTag}</span>
                         <span style="font-weight:700;color:${color}">${prefix}${qtyParts.join(' ')}</span>
                     </div>`;
                 }).join('')}`;
@@ -1193,15 +1586,29 @@
     }
 
     // ==========================================
-    // RESET DATA
+    // RESET DATA (Admin Only)
     // ==========================================
     async function resetData() {
+        if (!isAdmin()) {
+            showToast('Only administrators can reset data', 'error');
+            return;
+        }
         const confirmed = await showConfirm('Reset All Data?', 'This will reset all stock levels to initial values and clear all dispatch history. This action cannot be undone.');
         if (!confirmed) return;
 
         localStorage.removeItem(STORAGE_KEY);
         state = { stock: {}, dispatches: [], initialized: false };
-        initializeState();
+        // Re-initialize from defaults
+        state.stock = {};
+        PRODUCT_CATALOG.forEach(p => {
+            state.stock[p.id] = {
+                cases: p.initialStockCases,
+                pieces: p.initialStockPieces
+            };
+        });
+        state.dispatches = [];
+        state.initialized = true;
+        await saveState();
         renderCurrentView();
         showToast('All data has been reset', 'info');
     }
@@ -1223,6 +1630,40 @@
     // EVENT BINDINGS
     // ==========================================
     function bindEvents() {
+        // Login form
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value.trim().toLowerCase();
+            const password = document.getElementById('login-password').value;
+            const errorEl = document.getElementById('login-error');
+            const btn = document.getElementById('login-submit-btn');
+
+            btn.disabled = true;
+            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><circle cx="12" cy="12" r="10"/></svg> Signing in...';
+
+            const result = await attemptLogin(username, password);
+
+            if (result.success) {
+                errorEl.style.display = 'none';
+                hideLoginScreen();
+                updateUIForUser();
+                await initializeState();
+                populateBrandFilters();
+                renderDashboard();
+            } else {
+                errorEl.textContent = result.error;
+                errorEl.style.display = 'block';
+                document.getElementById('login-password').value = '';
+                document.getElementById('login-password').focus();
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign In';
+        });
+
+        // Logout
+        document.getElementById('btn-logout').addEventListener('click', logout);
+
         // Navigation
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', (e) => {
@@ -1236,7 +1677,7 @@
             document.getElementById('sidebar').classList.toggle('open');
         });
 
-        // Search
+        // Global search
         document.getElementById('global-search').addEventListener('input', (e) => {
             searchQuery = e.target.value.trim();
             renderCurrentView();
@@ -1286,7 +1727,7 @@
                 document.getElementById('restock-cases').value = 0;
                 document.getElementById('restock-pieces').value = 0;
                 document.getElementById('restock-notes').value = '';
-                handleRestockProductChange(); // refresh preview stock
+                handleRestockProductChange();
                 renderRecentRestocks();
                 renderStats();
             }
@@ -1307,9 +1748,8 @@
             if (e.target === e.currentTarget) closeModal();
         });
 
-        // Export & Reset
+        // Export
         document.getElementById('btn-export-data').addEventListener('click', exportData);
-        document.getElementById('btn-reset-data').addEventListener('click', resetData);
 
         // Leakage form
         document.getElementById('leakage-product').addEventListener('change', handleLeakageProductChange);
@@ -1382,19 +1822,66 @@
 
         // Retail summary date filter
         document.getElementById('retail-summary-date-filter').addEventListener('change', renderRetailSummary);
+
+        // Admin panel events
+        document.getElementById('admin-btn-export').addEventListener('click', exportData);
+        document.getElementById('admin-btn-reset').addEventListener('click', resetData);
+        document.getElementById('admin-filter-user').addEventListener('change', renderAdminActivityLog);
+        document.getElementById('admin-filter-type').addEventListener('change', renderAdminActivityLog);
+        document.getElementById('admin-filter-date').addEventListener('change', renderAdminActivityLog);
+
+        // Add User form
+        document.getElementById('admin-add-user-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('admin-add-user-btn');
+            const username = document.getElementById('admin-new-username').value.trim();
+            const displayName = document.getElementById('admin-new-displayname').value.trim();
+            const password = document.getElementById('admin-new-password').value;
+            const role = document.getElementById('admin-new-role').value;
+
+            btn.disabled = true;
+            btn.textContent = 'Adding...';
+            await addUser(username, displayName, password, role);
+            btn.disabled = false;
+            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg> Add User`;
+        });
+
+        // Change password form
+        document.getElementById('admin-change-pw-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('admin-change-pw-username').textContent;
+            const newPassword = document.getElementById('admin-change-pw-input').value;
+            await changeUserPassword(username, newPassword);
+        });
+
+        // Cancel change password
+        document.getElementById('admin-change-pw-cancel').addEventListener('click', () => {
+            document.getElementById('admin-change-pw-overlay').style.display = 'none';
+        });
     }
 
     // ==========================================
     // INIT
     // ==========================================
-    function init() {
+    async function init() {
         // Set date in header
         document.getElementById('header-date').textContent = formatDate(new Date().toISOString());
 
-        initializeState();
-        populateBrandFilters();
         bindEvents();
-        renderDashboard();
+
+        // Check for existing session
+        const savedUser = getSessionUser();
+        if (savedUser) {
+            currentUser = savedUser;
+            hideLoginScreen();
+            updateUIForUser();
+            await initializeState();
+            populateBrandFilters();
+            renderDashboard();
+        } else {
+            // Show login screen
+            showLoginScreen();
+        }
     }
 
     // Expose API for inline onclick handlers
@@ -1403,7 +1890,9 @@
         closeModal,
         quickDispatch,
         quickRestock,
-        quickLeakage
+        quickLeakage,
+        openChangePwDialog,
+        removeUser
     };
 
     // Boot
