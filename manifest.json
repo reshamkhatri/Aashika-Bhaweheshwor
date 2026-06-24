@@ -1,0 +1,19 @@
+{
+  "name": "Aashika-Bhaweneshwor Stock Manager",
+  "short_name": "StockFlow",
+  "description": "Warehouse stock management & dispatch tracking",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512 any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
