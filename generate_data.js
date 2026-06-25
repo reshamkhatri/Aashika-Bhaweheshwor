@@ -33,9 +33,9 @@ const products = rows.map((row, index) => {
         }
     }
 
-    // Random initial stock for testing
-    const stockCases = Math.floor(Math.random() * 25) + 1;  // 1-25 cases
-    const stockPieces = Math.floor(Math.random() * piecesPerCase); // 0 to piecesPerCase-1
+    // Initial stock set to 0
+    const stockCases = 0;
+    const stockPieces = 0;
 
     return {
         id: `prod_${index + 1}`,
@@ -51,6 +51,11 @@ const products = rows.map((row, index) => {
 const output = `// Auto-generated product catalog from Excel
 // Generated: ${new Date().toISOString()}
 const PRODUCT_CATALOG = ${JSON.stringify(products, null, 2)};
+
+// Allow Node (server.js) to use the same catalog as the single source of truth.
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = PRODUCT_CATALOG;
+}
 `;
 
 fs.writeFileSync(path.join(__dirname, 'data.js'), output, 'utf-8');

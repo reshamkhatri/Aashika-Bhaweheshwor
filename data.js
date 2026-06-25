@@ -1,5 +1,5 @@
 // Auto-generated product catalog from Excel
-// Generated: 2026-06-18T15:29:44.322Z
+// Generated: 2026-06-25T05:00:27.115Z
 const PRODUCT_CATALOG = [
   {
     "id": "prod_1",
@@ -7,8 +7,8 @@ const PRODUCT_CATALOG = [
     "volume": "250ml",
     "piecesPerCase": 24,
     "image": "Redbull 250ml.png",
-    "initialStockCases": 8,
-    "initialStockPieces": 13
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_2",
@@ -16,8 +16,8 @@ const PRODUCT_CATALOG = [
     "volume": "330ml",
     "piecesPerCase": 24,
     "image": "RedBull 330ml.png",
-    "initialStockCases": 23,
-    "initialStockPieces": 23
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_3",
@@ -25,8 +25,8 @@ const PRODUCT_CATALOG = [
     "volume": "180ml",
     "piecesPerCase": 48,
     "image": "Rara Blues 180ml.png",
-    "initialStockCases": 1,
-    "initialStockPieces": 1
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_4",
@@ -34,8 +34,8 @@ const PRODUCT_CATALOG = [
     "volume": "375ml",
     "piecesPerCase": 24,
     "image": "Rara Blues 375ml.png",
-    "initialStockCases": 11,
-    "initialStockPieces": 8
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_5",
@@ -43,8 +43,8 @@ const PRODUCT_CATALOG = [
     "volume": "750ml",
     "piecesPerCase": 12,
     "image": "Rara Blues 750ml.png",
-    "initialStockCases": 4,
-    "initialStockPieces": 11
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_6",
@@ -52,8 +52,8 @@ const PRODUCT_CATALOG = [
     "volume": "180ml",
     "piecesPerCase": 48,
     "image": "Seto Bagh 180ml.png",
-    "initialStockCases": 12,
-    "initialStockPieces": 22
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_7",
@@ -61,8 +61,8 @@ const PRODUCT_CATALOG = [
     "volume": "375ml",
     "piecesPerCase": 24,
     "image": "Seto Bagh 375ml.png",
-    "initialStockCases": 6,
-    "initialStockPieces": 21
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_8",
@@ -70,8 +70,8 @@ const PRODUCT_CATALOG = [
     "volume": "750ml",
     "piecesPerCase": 12,
     "image": "Seto Bagh 750ml.png",
-    "initialStockCases": 19,
-    "initialStockPieces": 10
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_9",
@@ -79,8 +79,8 @@ const PRODUCT_CATALOG = [
     "volume": "300ml",
     "piecesPerCase": 30,
     "image": "Genial 300ml.jpg",
-    "initialStockCases": 16,
-    "initialStockPieces": 5
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_10",
@@ -88,8 +88,8 @@ const PRODUCT_CATALOG = [
     "volume": "180ml",
     "piecesPerCase": 48,
     "image": "Genial 180ml.jpg",
-    "initialStockCases": 24,
-    "initialStockPieces": 21
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_11",
@@ -97,7 +97,7 @@ const PRODUCT_CATALOG = [
     "volume": "300ml",
     "piecesPerCase": 30,
     "image": "Seoul Soju 300ml.png",
-    "initialStockCases": 4,
+    "initialStockCases": 0,
     "initialStockPieces": 0
   },
   {
@@ -106,8 +106,8 @@ const PRODUCT_CATALOG = [
     "volume": "180ml",
     "piecesPerCase": 48,
     "image": "Badam Juice 180ml.png",
-    "initialStockCases": 17,
-    "initialStockPieces": 11
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_13",
@@ -115,8 +115,8 @@ const PRODUCT_CATALOG = [
     "volume": "180ml",
     "piecesPerCase": 48,
     "image": "Sarangi 180ml.png",
-    "initialStockCases": 7,
-    "initialStockPieces": 46
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_14",
@@ -124,8 +124,8 @@ const PRODUCT_CATALOG = [
     "volume": "375ml",
     "piecesPerCase": 24,
     "image": "Sarangi 375ml.png",
-    "initialStockCases": 9,
-    "initialStockPieces": 16
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_15",
@@ -133,8 +133,8 @@ const PRODUCT_CATALOG = [
     "volume": "750ml",
     "piecesPerCase": 12,
     "image": "Sarangi 750ml.png",
-    "initialStockCases": 1,
-    "initialStockPieces": 5
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_16",
@@ -142,8 +142,8 @@ const PRODUCT_CATALOG = [
     "volume": "180ml",
     "piecesPerCase": 48,
     "image": "Great 180ml.png",
-    "initialStockCases": 17,
-    "initialStockPieces": 46
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_17",
@@ -151,8 +151,8 @@ const PRODUCT_CATALOG = [
     "volume": "375ml",
     "piecesPerCase": 24,
     "image": "Great 375ml.png",
-    "initialStockCases": 6,
-    "initialStockPieces": 21
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_18",
@@ -160,8 +160,8 @@ const PRODUCT_CATALOG = [
     "volume": "750ml",
     "piecesPerCase": 12,
     "image": "Great 750ml.png",
-    "initialStockCases": 21,
-    "initialStockPieces": 3
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_19",
@@ -169,7 +169,7 @@ const PRODUCT_CATALOG = [
     "volume": "300ml",
     "piecesPerCase": 30,
     "image": "Snowfall 300ml.jpg",
-    "initialStockCases": 24,
+    "initialStockCases": 0,
     "initialStockPieces": 0
   },
   {
@@ -178,8 +178,8 @@ const PRODUCT_CATALOG = [
     "volume": "300ml",
     "piecesPerCase": 30,
     "image": "Hitman 300ml.jpg",
-    "initialStockCases": 17,
-    "initialStockPieces": 7
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_21",
@@ -187,8 +187,8 @@ const PRODUCT_CATALOG = [
     "volume": "330ml",
     "piecesPerCase": 24,
     "image": "Gorkha Strong Unfiltered 330ml.png",
-    "initialStockCases": 18,
-    "initialStockPieces": 14
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_22",
@@ -196,8 +196,8 @@ const PRODUCT_CATALOG = [
     "volume": "650ml",
     "piecesPerCase": 12,
     "image": "Carlsberg Plisner 650ml.png",
-    "initialStockCases": 12,
-    "initialStockPieces": 4
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_23",
@@ -205,8 +205,8 @@ const PRODUCT_CATALOG = [
     "volume": "650ml",
     "piecesPerCase": 12,
     "image": "Carlsberg 650ml.png",
-    "initialStockCases": 4,
-    "initialStockPieces": 9
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_24",
@@ -214,8 +214,8 @@ const PRODUCT_CATALOG = [
     "volume": "500ml",
     "piecesPerCase": 12,
     "image": "Carlsberg Can 500ml.png",
-    "initialStockCases": 2,
-    "initialStockPieces": 6
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_25",
@@ -223,8 +223,8 @@ const PRODUCT_CATALOG = [
     "volume": "650ml",
     "piecesPerCase": 12,
     "image": "Tuborg Gold 650ml.png",
-    "initialStockCases": 13,
-    "initialStockPieces": 6
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_26",
@@ -232,7 +232,7 @@ const PRODUCT_CATALOG = [
     "volume": "500ml",
     "piecesPerCase": 12,
     "image": "Tuborg Gold Can 500ml.png",
-    "initialStockCases": 22,
+    "initialStockCases": 0,
     "initialStockPieces": 0
   },
   {
@@ -241,8 +241,8 @@ const PRODUCT_CATALOG = [
     "volume": "330ml",
     "piecesPerCase": 24,
     "image": "Tuborg Gold 330ml.png",
-    "initialStockCases": 18,
-    "initialStockPieces": 2
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_28",
@@ -250,8 +250,8 @@ const PRODUCT_CATALOG = [
     "volume": "650ml",
     "piecesPerCase": 12,
     "image": "Tuborg Strong 650ml.png",
-    "initialStockCases": 19,
-    "initialStockPieces": 7
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_29",
@@ -259,8 +259,8 @@ const PRODUCT_CATALOG = [
     "volume": "500ml",
     "piecesPerCase": 12,
     "image": "Tuborg Strong Can 500ml.png",
-    "initialStockCases": 3,
-    "initialStockPieces": 2
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_30",
@@ -268,8 +268,8 @@ const PRODUCT_CATALOG = [
     "volume": "330ml",
     "piecesPerCase": 24,
     "image": "Tuborg Strong 330ml.png",
-    "initialStockCases": 14,
-    "initialStockPieces": 7
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_31",
@@ -277,8 +277,8 @@ const PRODUCT_CATALOG = [
     "volume": "650ml",
     "piecesPerCase": 12,
     "image": "Gorkha Plisner 650ml.png",
-    "initialStockCases": 2,
-    "initialStockPieces": 6
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_32",
@@ -286,8 +286,8 @@ const PRODUCT_CATALOG = [
     "volume": "330ml",
     "piecesPerCase": 24,
     "image": "Gorkha Plisner 330ml.png",
-    "initialStockCases": 15,
-    "initialStockPieces": 7
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_33",
@@ -295,8 +295,8 @@ const PRODUCT_CATALOG = [
     "volume": "650ml",
     "piecesPerCase": 12,
     "image": "Gorkha Premium 650ml.png",
-    "initialStockCases": 4,
-    "initialStockPieces": 9
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_34",
@@ -304,8 +304,8 @@ const PRODUCT_CATALOG = [
     "volume": "500ml",
     "piecesPerCase": 12,
     "image": "Gorkha Premium Can 500ml.png",
-    "initialStockCases": 24,
-    "initialStockPieces": 4
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_35",
@@ -313,8 +313,8 @@ const PRODUCT_CATALOG = [
     "volume": "330ml",
     "piecesPerCase": 24,
     "image": "Gorkha Premium 330ml.png",
-    "initialStockCases": 5,
-    "initialStockPieces": 4
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_36",
@@ -322,8 +322,8 @@ const PRODUCT_CATALOG = [
     "volume": "650ml",
     "piecesPerCase": 12,
     "image": "Gorkha Craft 650ml.png",
-    "initialStockCases": 8,
-    "initialStockPieces": 11
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_37",
@@ -331,8 +331,8 @@ const PRODUCT_CATALOG = [
     "volume": "330ml",
     "piecesPerCase": 24,
     "image": "Gorkha Craft 330ml.png",
-    "initialStockCases": 4,
-    "initialStockPieces": 13
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_38",
@@ -340,8 +340,8 @@ const PRODUCT_CATALOG = [
     "volume": "650ml",
     "piecesPerCase": 12,
     "image": "Gorkha Strong 650ml.png",
-    "initialStockCases": 3,
-    "initialStockPieces": 2
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_39",
@@ -349,8 +349,8 @@ const PRODUCT_CATALOG = [
     "volume": "500ml",
     "piecesPerCase": 12,
     "image": "Gorkha Strong Can 500ml.png",
-    "initialStockCases": 21,
-    "initialStockPieces": 7
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_40",
@@ -358,8 +358,8 @@ const PRODUCT_CATALOG = [
     "volume": "330ml",
     "piecesPerCase": 24,
     "image": "Gorkha Strong 330ml.png",
-    "initialStockCases": 5,
-    "initialStockPieces": 13
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_41",
@@ -367,8 +367,8 @@ const PRODUCT_CATALOG = [
     "volume": "330ml",
     "piecesPerCase": 24,
     "image": "Gorkha Extra Strong 330ml.png",
-    "initialStockCases": 12,
-    "initialStockPieces": 3
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_42",
@@ -376,8 +376,8 @@ const PRODUCT_CATALOG = [
     "volume": "650ml",
     "piecesPerCase": 12,
     "image": "Himalayan Dragon 650ml.png",
-    "initialStockCases": 14,
-    "initialStockPieces": 8
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_43",
@@ -385,8 +385,8 @@ const PRODUCT_CATALOG = [
     "volume": "330ml",
     "piecesPerCase": 24,
     "image": "Himalayan Dragon 330ml.png",
-    "initialStockCases": 9,
-    "initialStockPieces": 7
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   },
   {
     "id": "prod_44",
@@ -394,8 +394,8 @@ const PRODUCT_CATALOG = [
     "volume": "250ml",
     "piecesPerCase": 12,
     "image": "Somersby 250ml.png",
-    "initialStockCases": 10,
-    "initialStockPieces": 3
+    "initialStockCases": 0,
+    "initialStockPieces": 0
   }
 ];
 
