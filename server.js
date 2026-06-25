@@ -12,7 +12,7 @@ try {
     if (fs.existsSync(envPath)) {
         fs.readFileSync(envPath, 'utf-8').split('\n').forEach(line => {
             const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/i);
-            if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+            if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
         });
     }
 } catch (e) {}
@@ -105,10 +105,27 @@ let memoryDb = null; // authoritative in-memory copy
 
 async function connectMongo() {
     const { MongoClient } = require('mongodb');
-    const client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    mongoCol = client.db(MONGODB_DB).collection('appdata');
-    console.log('  Storage: MongoDB Atlas connected');
+    const client = new MongoClient(MONGODB_URI, {
+        serverSelectionTimeoutMS: 10000,
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
+        appName: 'aashika-bhaweheshwor-stock-manager',
+    });
+
+    const maxAttempts = 5;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        try {
+            await client.connect();
+            mongoCol = client.db(MONGODB_DB).collection('appdata');
+            console.log('  Storage: MongoDB Atlas connected');
+            return;
+        } catch (e) {
+            if (attempt === maxAttempts) throw e;
+            const waitMs = 1000 * attempt;
+            console.warn(`  MongoDB connection failed (attempt ${attempt}/${maxAttempts}). Retrying in ${waitMs}ms: ${e.message}`);
+            await new Promise(resolve => setTimeout(resolve, waitMs));
+        }
+    }
 }
 
 async function readRaw() {
