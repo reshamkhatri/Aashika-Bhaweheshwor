@@ -233,27 +233,18 @@ async function bootstrap() {
         dirty = true;
     }
 
-    // Seed default users on first run
-    if (!db.users.length) {
-        db.users = DEFAULT_USERS.map(u => ({ ...u, password: hashPassword(u.password) }));
-        dirty = true;
-    }
+    // Force-reset users to defaults (ensures known passwords after deploy)
+    db.users = DEFAULT_USERS.map(u => ({ ...u, password: hashPassword(u.password) }));
+    dirty = true;
 
-    // Migrate any legacy plaintext passwords -> hashed
-    db.users.forEach(u => {
-        if (!isHashed(u.password)) { u.password = hashPassword(u.password); dirty = true; }
+    // Force-reset stock to zero from catalog
+    db.stock = {};
+    PRODUCT_CATALOG.forEach(p => {
+        db.stock[p.id] = { cases: 0, pieces: 0 };
     });
-
-    // Seed initial stock on first run
-    if (!db.initialized) {
-        db.stock = {};
-        PRODUCT_CATALOG.forEach(p => {
-            db.stock[p.id] = { cases: p.initialStockCases, pieces: p.initialStockPieces };
-        });
-        db.dispatches = [];
-        db.initialized = true;
-        dirty = true;
-    }
+    db.dispatches = [];
+    db.initialized = true;
+    dirty = true;
 
     memoryDb = db;
     if (dirty) await persist();
