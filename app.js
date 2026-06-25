@@ -199,55 +199,32 @@
     }
 
     function formatDate(dateStr) {
-        try {
-            const d = new Date(dateStr);
-            return d.toLocaleDateString('en-US', {
-                timeZone: 'Asia/Kathmandu',
-                weekday: 'short',
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        } catch (e) {
-            const d = new Date(dateStr);
-            return d.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
-        }
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Kathmandu' });
     }
 
     function formatTime(dateStr) {
-        try {
-            const d = new Date(dateStr);
-            return d.toLocaleTimeString('en-US', {
-                timeZone: 'Asia/Kathmandu',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        } catch (e) {
-            const d = new Date(dateStr);
-            return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        }
+        const d = new Date(dateStr);
+        return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kathmandu' });
     }
 
-    // Local calendar date (YYYY-MM-DD) in Nepal timezone (Asia/Kathmandu).
-    // Nepal is UTC+5:45.
+    // Local calendar date (YYYY-MM-DD) in the user's timezone.
+    // IMPORTANT: timestamps are stored in UTC, so we must convert to LOCAL
+    // before comparing, otherwise "today" is wrong for several hours each day
+    // (Nepal is UTC+5:45).
     function localDate(ts) {
-        try {
-            return new Date(ts).toLocaleDateString('sv-SE', { timeZone: 'Asia/Kathmandu' });
-        } catch (e) {
-            const d = new Date(ts);
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${y}-${m}-${day}`;
-        }
+        // Convert to Asia/Kathmandu local calendar date
+        const d = new Date(ts);
+        const nepaliTime = d.toLocaleString('en-US', { timeZone: 'Asia/Kathmandu' });
+        const localD = new Date(nepaliTime);
+        const y = localD.getFullYear();
+        const m = String(localD.getMonth() + 1).padStart(2, '0');
+        const day = String(localD.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
     }
 
     function getToday() {
-        try {
-            return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Kathmandu' });
-        } catch (e) {
-            return localDate(new Date());
-        }
+        return localDate(new Date());
     }
 
     function generateId() {
@@ -1637,6 +1614,305 @@
                 await initializeState();
                 populateBrandFilters();
                 switchView('dashboard');
+            } else {
+                errorEl.textContent = result.error;
+                errorEl.style.display = 'block';
+                document.getElementById('login-password').value = '';
+                document.getElementById('login-password').focus();
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign In';
+        });
+
+        // Logout
+        document.getElementById('btn-logout').addEventListener('click', logout);
+
+        // Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchView(item.dataset.view);
+            });
+        });
+
+        // Hamburger
+        document.getElementById('hamburger-btn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('open');
+        });
+
+        // Global search
+        document.getElementById('global-search').addEventListener('input', (e) => {
+            searchQuery = e.target.value.trim();
+            renderCurrentView();
+        });
+
+        // Dashboard filters
+        document.getElementById('dashboard-filter-brand').addEventListener('change', renderDashboardGrid);
+        document.getElementById('dashboard-filter-status').addEventListener('change', renderDashboardGrid);
+
+        // Inventory filters
+        document.getElementById('inventory-filter-brand').addEventListener('change', renderInventory);
+        document.getElementById('inventory-sort').addEventListener('change', renderInventory);
+
+        // Dispatch form
+        document.getElementById('dispatch-product').addEventListener('change', handleDispatchProductChange);
+        document.getElementById('dispatch-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const productId = document.getElementById('dispatch-product').value;
+            const cases = parseInt(document.getElementById('dispatch-cases').value) || 0;
+            const pieces = parseInt(document.getElementById('dispatch-pieces').value) || 0;
+            const notes = document.getElementById('dispatch-notes').value.trim();
+
+            if (!productId) { showToast('Please select a product', 'warning'); return; }
+
+            if (await performDispatch(productId, cases, pieces, notes)) {
+                document.getElementById('dispatch-cases').value = 0;
+                document.getElementById('dispatch-pieces').value = 0;
+                document.getElementById('dispatch-notes').value = '';
+                handleDispatchProductChange(); // refresh preview stock
+                renderTodayDispatches();
+                renderStats();
+            }
+        });
+
+        // Restock form
+        document.getElementById('restock-product').addEventListener('change', handleRestockProductChange);
+        document.getElementById('restock-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const productId = document.getElementById('restock-product').value;
+            const cases = parseInt(document.getElementById('restock-cases').value) || 0;
+            const pieces = parseInt(document.getElementById('restock-pieces').value) || 0;
+            const notes = document.getElementById('restock-notes').value.trim();
+
+            if (!productId) { showToast('Please select a product', 'warning'); return; }
+
+            if (await performRestock(productId, cases, pieces, notes)) {
+                document.getElementById('restock-cases').value = 0;
+                document.getElementById('restock-pieces').value = 0;
+                document.getElementById('restock-notes').value = '';
+                handleRestockProductChange();
+                renderRecentRestocks();
+                renderStats();
+            }
+        });
+
+        // History filters
+        document.getElementById('history-date-filter').addEventListener('change', renderHistory);
+        document.getElementById('history-product-filter').addEventListener('change', renderHistory);
+        document.getElementById('btn-clear-history-filters').addEventListener('click', () => {
+            document.getElementById('history-date-filter').value = '';
+            document.getElementById('history-product-filter').value = 'all';
+            renderHistory();
+        });
+
+        // Modal
+        document.getElementById('modal-close').addEventListener('click', closeModal);
+        document.getElementById('modal-overlay').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeModal();
+        });
+
+        // Export
+        document.getElementById('btn-export-data').addEventListener('click', exportData);
+
+        // Leakage form
+        document.getElementById('leakage-product').addEventListener('change', handleLeakageProductChange);
+        document.getElementById('leakage-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const productId = document.getElementById('leakage-product').value;
+            const cases = parseInt(document.getElementById('leakage-cases').value) || 0;
+            const pieces = parseInt(document.getElementById('leakage-pieces').value) || 0;
+            const type = document.getElementById('leakage-type').value;
+            const party = document.getElementById('leakage-party').value.trim();
+            const notes = document.getElementById('leakage-notes').value.trim();
+
+            if (!productId) { showToast('Please select a product', 'warning'); return; }
+            if (!party) { showToast('Please enter the party name', 'warning'); return; }
+
+            if (await performLeakage(productId, cases, pieces, type, party, notes)) {
+                document.getElementById('leakage-cases').value = 0;
+                document.getElementById('leakage-pieces').value = 0;
+                document.getElementById('leakage-party').value = '';
+                document.getElementById('leakage-notes').value = '';
+                handleLeakageProductChange(); // refresh preview stock
+                renderRecentLeakage();
+                renderStats();
+            }
+        });
+
+        // Retail Takeout form
+        document.getElementById('retail-takeout-product').addEventListener('change', handleRetailTakeoutProductChange);
+        document.getElementById('retail-takeout-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const productId = document.getElementById('retail-takeout-product').value;
+            const cases = parseInt(document.getElementById('retail-takeout-cases').value) || 0;
+            const pieces = parseInt(document.getElementById('retail-takeout-pieces').value) || 0;
+            const notes = document.getElementById('retail-takeout-notes').value.trim();
+
+            if (!productId) { showToast('Please select a product', 'warning'); return; }
+
+            if (await performRetailTakeout(productId, cases, pieces, notes)) {
+                document.getElementById('retail-takeout-cases').value = 0;
+                document.getElementById('retail-takeout-pieces').value = 0;
+                document.getElementById('retail-takeout-notes').value = '';
+                handleRetailTakeoutProductChange();
+                renderRetailSummary();
+                renderRetailRecentList();
+                renderStats();
+            }
+        });
+
+        // Retail Return form
+        document.getElementById('retail-return-product').addEventListener('change', handleRetailReturnProductChange);
+        document.getElementById('retail-return-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const productId = document.getElementById('retail-return-product').value;
+            const cases = parseInt(document.getElementById('retail-return-cases').value) || 0;
+            const pieces = parseInt(document.getElementById('retail-return-pieces').value) || 0;
+            const notes = document.getElementById('retail-return-notes').value.trim();
+
+            if (!productId) { showToast('Please select a product', 'warning'); return; }
+
+            if (await performRetailReturn(productId, cases, pieces, notes)) {
+                document.getElementById('retail-return-cases').value = 0;
+                document.getElementById('retail-return-pieces').value = 0;
+                document.getElementById('retail-return-notes').value = '';
+                handleRetailReturnProductChange();
+                renderRetailSummary();
+                renderRetailRecentList();
+                renderStats();
+            }
+        });
+
+        // Retail summary date filter
+        document.getElementById('retail-summary-date-filter').addEventListener('change', renderRetailSummary);
+
+        // Admin panel events
+        document.getElementById('admin-btn-export').addEventListener('click', exportData);
+        document.getElementById('admin-btn-reset').addEventListener('click', resetData);
+        document.getElementById('admin-filter-user').addEventListener('change', renderAdminActivityLog);
+        document.getElementById('admin-filter-type').addEventListener('change', renderAdminActivityLog);
+        document.getElementById('admin-filter-date').addEventListener('change', renderAdminActivityLog);
+
+        // Add User form
+        document.getElementById('admin-add-user-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('admin-add-user-btn');
+            const username = document.getElementById('admin-new-username').value.trim();
+            const displayName = document.getElementById('admin-new-displayname').value.trim();
+            const password = document.getElementById('admin-new-password').value;
+            const role = document.getElementById('admin-new-role').value;
+
+            btn.disabled = true;
+            btn.textContent = 'Adding...';
+            await addUser(username, displayName, password, role);
+            btn.disabled = false;
+            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg> Add User`;
+        });
+
+        // Change password form
+        document.getElementById('admin-change-pw-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('admin-change-pw-username').textContent;
+            const newPassword = document.getElementById('admin-change-pw-input').value;
+            await changeUserPassword(username, newPassword);
+        });
+
+        // Cancel change password
+        document.getElementById('admin-change-pw-cancel').addEventListener('click', () => {
+            document.getElementById('admin-change-pw-overlay').style.display = 'none';
+        });
+
+        // Open self-service change password dialog
+        document.getElementById('btn-user-settings').addEventListener('click', () => {
+            if (!currentUser) return;
+            document.getElementById('user-change-pw-username').textContent = currentUser.displayName || currentUser.username;
+            document.getElementById('user-change-pw-current').value = '';
+            document.getElementById('user-change-pw-new').value = '';
+            document.getElementById('user-change-pw-confirm').value = '';
+            document.getElementById('user-change-pw-overlay').style.display = 'flex';
+        });
+
+        // Cancel self-service change password
+        document.getElementById('user-change-pw-cancel').addEventListener('click', () => {
+            document.getElementById('user-change-pw-overlay').style.display = 'none';
+        });
+
+        // Submit self-service change password
+        document.getElementById('user-change-pw-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPw = document.getElementById('user-change-pw-current').value;
+            const newPw = document.getElementById('user-change-pw-new').value;
+            const confirmPw = document.getElementById('user-change-pw-confirm').value;
+
+            if (newPw !== confirmPw) {
+                showToast('New passwords do not match', 'error');
+                return;
+            }
+
+            try {
+                const res = await apiFetch('/api/users/change-own-password', {
+                    method: 'POST',
+                    body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Password update failed');
+                
+                showToast('Password updated successfully', 'success');
+                document.getElementById('user-change-pw-overlay').style.display = 'none';
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        });
+
+        // Import product catalog via Excel
+        document.getElementById('admin-btn-import-catalog').addEventListener('click', async () => {
+            const fileInput = document.getElementById('admin-import-file');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showToast('Please select an Excel file (.xlsx) first', 'warning');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            const btn = document.getElementById('admin-btn-import-catalog');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; margin-right: 6px; display: inline-block; vertical-align: middle; animation:spin 1s linear infinite"><circle cx="12" cy="12" r="10"/></svg> Uploading...';
+
+            reader.onload = async (e) => {
+                const base64Data = e.target.result.split(',')[1];
+                try {
+                    const res = await apiFetch('/api/admin/import-catalog', {
+                        method: 'POST',
+                        body: JSON.stringify({ file: base64Data })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Catalog import failed');
+
+                    showToast('Catalog updated successfully! Reloading...', 'success');
+                    setTimeout(() => window.location.reload(), 1500);
+                } catch (err) {
+                    showToast(err.message, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+            };
+
+            reader.onerror = () => {
+                showToast('Failed to read file', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            };
+
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // ==========================================
+    // INIT
+    // ==========================================
     async function init() {
         // Set date in header
         document.getElementById('header-date').textContent = formatDate(new Date().toISOString());
