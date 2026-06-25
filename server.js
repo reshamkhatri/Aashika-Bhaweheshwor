@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const XLSX = require('xlsx');
-const PRODUCT_CATALOG = require('./data.js');
+let PRODUCT_CATALOG = require('./data.js');
 
 // Minimal .env loader (no dependency). Hosts like Render inject env vars
 // directly, so this is only used for local development convenience.
@@ -152,12 +152,42 @@ async function readRaw() {
     } catch (e) { console.error('Failed to load db.json:', e.message); }
     return null;
 }
+function backupDatabase(data) {
+    try {
+        const backupDir = path.join(__dirname, 'backups');
+        if (!fs.existsSync(backupDir)) {
+            fs.mkdirSync(backupDir);
+        }
+        const dateStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Kathmandu' });
+        const backupPath = path.join(backupDir, `db_backup_${dateStr}.json`);
+        if (!fs.existsSync(backupPath)) {
+            fs.writeFileSync(backupPath, JSON.stringify(data, null, 2), 'utf-8');
+            console.log(`  Database backup created: backups/db_backup_${dateStr}.json`);
+            const files = fs.readdirSync(backupDir)
+                .filter(f => f.startsWith('db_backup_') && f.endsWith('.json'))
+                .map(f => ({ name: f, time: fs.statSync(path.join(backupDir, f)).mtime.getTime() }))
+                .sort((a, b) => b.time - a.time);
+            if (files.length > 10) {
+                for (let i = 10; i < files.length; i++) {
+                    fs.unlinkSync(path.join(backupDir, files[i].name));
+                    console.log(`  Deleted old backup: ${files[i].name}`);
+                }
+            }
+        }
+    } catch (e) {
+        console.error('Failed to create database backup:', e.message);
+    }
+}
+
 async function writeRaw(data) {
     if (USE_MONGO) {
         await mongoCol.updateOne({ _id: 'main' }, { $set: { data } }, { upsert: true });
         return;
     }
-    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    const tmpPath = DB_PATH + '.tmp';
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tmpPath, DB_PATH);
+    backupDatabase(data);
 }
 
 // Persist the in-memory authoritative copy
@@ -272,6 +302,60 @@ function getAuth(req) {
 }
 function publicUser(u) { return { username: u.username, role: u.role, displayName: u.displayName }; }
 
+function processExcelImport(base64Data) {
+    const buf = Buffer.from(base64Data, 'base64');
+    const workbook = XLSX.read(buf, { type: 'buffer' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet);
+    
+    const allFiles = fs.readdirSync(__dirname);
+    const imageFiles = allFiles.filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f));
+    
+    function normalizeName(str) {
+        return str.toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+    
+    const products = rows.map((row, index) => {
+        const name = row['Product'];
+        const volume = row['Quantaty per bottle'];
+        const piecesPerCase = parseInt(row['Quantaty Per Case']) || 0;
+        const fullName = `${name} ${volume}`;
+        const normFull = normalizeName(fullName);
+    
+        let imageFile = null;
+        for (const file of imageFiles) {
+            const ext = path.extname(file);
+            const base = path.basename(file, ext);
+            if (normalizeName(base) === normFull) {
+                imageFile = file;
+                break;
+            }
+        }
+    
+        return {
+            id: `prod_${index + 1}`,
+            name: name,
+            volume: volume,
+            piecesPerCase: piecesPerCase,
+            image: imageFile || '',
+            initialStockCases: 0,
+            initialStockPieces: 0
+        };
+    });
+    
+    const output = `// Auto-generated product catalog from Excel
+// Generated: ${new Date().toISOString()}
+const PRODUCT_CATALOG = ${JSON.stringify(products, null, 2)};
+
+// Allow Node (server.js) to use the same catalog as the single source of truth.
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = PRODUCT_CATALOG;
+}
+`;
+    fs.writeFileSync(path.join(__dirname, 'data.js'), output, 'utf-8');
+    return products;
+}
+
 // ============================================================
 // EXCEL EXPORT
 // ============================================================
@@ -305,7 +389,7 @@ function buildWorkbook(kind) {
         const rows = list.map(d => {
             const p = getProduct(d.productId) || { name: d.productId, volume: '' };
             return {
-                Date: new Date(d.timestamp).toLocaleString(),
+                Date: new Date(d.timestamp).toLocaleString('en-US', { timeZone: 'Asia/Kathmandu' }),
                 Type: d.type, Product: p.name, Volume: p.volume,
                 Cases: d.cases, Pieces: d.pieces, 'Total Pcs': d.totalPieces,
                 User: d.user || '', Notes: d.notes || '',
@@ -402,6 +486,23 @@ const server = http.createServer(async (req, res) => {
             return sendJson(res, 200, { success: true });
         }
 
+        if (pathname === '/api/users/change-own-password' && req.method === 'POST') {
+            const { currentPassword, newPassword } = await parseBody(req);
+            if (!currentPassword || !newPassword) return sendJson(res, 400, { success: false, error: 'Current password and new password are required' });
+            if (String(newPassword).length < 4) return sendJson(res, 400, { success: false, error: 'Password must be at least 4 characters' });
+            const user = memoryDb.users.find(u => u.username === auth.u);
+            if (!user) return sendJson(res, 404, { success: false, error: 'User not found' });
+            if (!verifyPassword(currentPassword, user.password)) {
+                return sendJson(res, 401, { success: false, error: 'Incorrect current password' });
+            }
+            await withLock(async () => {
+                user.password = hashPassword(newPassword);
+                addAudit(auth, 'password-changed-self', { targetUser: auth.u, notes: 'User changed their own password' });
+                await persist();
+            });
+            return sendJson(res, 200, { success: true });
+        }
+
         // ---------- STATE (stock + transactions) ----------
         if (pathname === '/api/state' && req.method === 'GET') {
             return sendJson(res, 200, {
@@ -480,6 +581,37 @@ const server = http.createServer(async (req, res) => {
             return sendJson(res, 200, { success: true });
         }
 
+        // ---------- IMPORT CATALOG (admin only) ----------
+        if (pathname === '/api/admin/import-catalog' && req.method === 'POST') {
+            if (auth.r !== 'admin') return sendJson(res, 403, { success: false, error: 'Admin only' });
+            const body = await parseBody(req);
+            if (!body.file) return sendJson(res, 400, { success: false, error: 'No Excel file provided' });
+            
+            try {
+                await withLock(async () => {
+                    const products = processExcelImport(body.file);
+                    
+                    // Initialize missing product keys in the stock database
+                    products.forEach(p => {
+                        if (!memoryDb.stock[p.id]) {
+                            memoryDb.stock[p.id] = { cases: 0, pieces: 0 };
+                        }
+                    });
+                    
+                    // Clear require cache for data.js and load updated product catalog
+                    delete require.cache[require.resolve('./data.js')];
+                    PRODUCT_CATALOG = require('./data.js');
+                    
+                    addAudit(auth, 'catalog-imported', { notes: `Imported product catalog with ${products.length} items from Excel` });
+                    await persist();
+                });
+                return sendJson(res, 200, { success: true });
+            } catch (e) {
+                console.error('Excel import error:', e);
+                return sendJson(res, 500, { success: false, error: 'Failed to process Excel file: ' + e.message });
+            }
+        }
+
         // ---------- EXCEL EXPORT ----------
         const exp = pathname.match(/^\/api\/export\/(inventory|history|retailing|leakage)\.xlsx$/);
         if (exp && req.method === 'GET') {
@@ -491,7 +623,7 @@ const server = http.createServer(async (req, res) => {
             const buf = buildWorkbook(exp[1]);
             res.writeHead(200, {
                 'Content-Type': MIME_TYPES['.xlsx'],
-                'Content-Disposition': `attachment; filename="${exp[1]}-${new Date().toISOString().split('T')[0]}.xlsx"`,
+                'Content-Disposition': `attachment; filename="${exp[1]}-${new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Kathmandu' })}.xlsx"`,
             });
             return res.end(buf);
         }

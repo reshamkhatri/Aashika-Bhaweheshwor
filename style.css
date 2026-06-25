@@ -2756,7 +2756,7 @@ input, select, textarea { font-family: inherit; }
 }
 
 /* Change password inline modal */
-.admin-change-pw-overlay {
+.admin-change-pw-overlay, .user-change-pw-overlay {
     position: fixed;
     inset: 0;
     z-index: 500;
@@ -2767,11 +2767,15 @@ input, select, textarea { font-family: inherit; }
     justify-content: center;
 }
 
-.admin-change-pw-card {
+.admin-change-pw-card, .user-change-pw-card {
     width: 100%;
     max-width: 400px;
     padding: 28px;
     animation: loginSlideUp 0.25s cubic-bezier(0.16,1,0.3,1) forwards;
+}
+
+.btn-user-settings:hover {
+    color: var(--accent-primary) !important;
 }
 
 .admin-change-pw-card h3 {
