@@ -1292,6 +1292,61 @@ input, select, textarea { font-family: inherit; }
     letter-spacing: -0.02em;
 }
 
+/* Detailed Layout inside stat cards */
+.retail-stat-detailed {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 6px 0;
+    width: 100%;
+}
+
+.retail-stat-det-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.retail-stat-det-num {
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+
+.retail-stat-det-unit {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+}
+
+.retail-stat-det-divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.retail-stat-total-ref {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: 4px;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.retail-stat-taken .retail-stat-det-num { color: #f59e0b; }
+.retail-stat-returned .retail-stat-det-num { color: #10b981; }
+.retail-stat-sold .retail-stat-det-num { color: #8b5cf6; }
+
 .retail-stat-taken .retail-stat-value { color: #f59e0b; }
 .retail-stat-returned .retail-stat-value { color: #10b981; }
 .retail-stat-sold .retail-stat-value { color: #8b5cf6; }
@@ -1376,6 +1431,48 @@ input, select, textarea { font-family: inherit; }
 .retail-num-taken { color: #f59e0b; }
 .retail-num-returned { color: #10b981; }
 .retail-num-sold { color: #8b5cf6; }
+
+/* Custom breakdown layout */
+.retail-breakdown-value-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 4px 0;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    padding: 6px 2px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.retail-breakdown-value-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.retail-breakdown-value-num {
+    font-size: 1.05rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.retail-breakdown-value-unit {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-top: 2px;
+}
+
+.retail-breakdown-total-ref {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-top: 2px;
+}
 
 /* Progress bar */
 .retail-breakdown-bar {

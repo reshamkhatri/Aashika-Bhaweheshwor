@@ -885,9 +885,48 @@
         });
 
         // Update stat cards with detailed cases/pieces breakdown
-        document.getElementById('retail-stat-taken').innerHTML = `${totalTaken} pcs <span style="display:block; font-size:0.75rem; color:rgba(255,255,255,0.6); font-weight:normal; margin-top:4px;">(${totalTakenCases} c, ${totalTakenPieces} p)</span>`;
-        document.getElementById('retail-stat-returned').innerHTML = `${totalReturned} pcs <span style="display:block; font-size:0.75rem; color:rgba(255,255,255,0.6); font-weight:normal; margin-top:4px;">(${totalReturnedCases} c, ${totalReturnedPieces} p)</span>`;
-        document.getElementById('retail-stat-sold').innerHTML = `${totalSold >= 0 ? totalSold : 0} pcs <span style="display:block; font-size:0.75rem; color:rgba(255,255,255,0.6); font-weight:normal; margin-top:4px;">(${totalSoldCases} c, ${totalSoldPieces} p)</span>`;
+        document.getElementById('retail-stat-taken').innerHTML = `
+            <div class="retail-stat-detailed">
+                <div class="retail-stat-det-item">
+                    <span class="retail-stat-det-num">${totalTakenCases}</span>
+                    <span class="retail-stat-det-unit">cases</span>
+                </div>
+                <div class="retail-stat-det-divider"></div>
+                <div class="retail-stat-det-item">
+                    <span class="retail-stat-det-num">${totalTakenPieces}</span>
+                    <span class="retail-stat-det-unit">pcs</span>
+                </div>
+            </div>
+            <div class="retail-stat-total-ref">${totalTaken} total pcs</div>
+        `;
+        document.getElementById('retail-stat-returned').innerHTML = `
+            <div class="retail-stat-detailed">
+                <div class="retail-stat-det-item">
+                    <span class="retail-stat-det-num">${totalReturnedCases}</span>
+                    <span class="retail-stat-det-unit">cases</span>
+                </div>
+                <div class="retail-stat-det-divider"></div>
+                <div class="retail-stat-det-item">
+                    <span class="retail-stat-det-num">${totalReturnedPieces}</span>
+                    <span class="retail-stat-det-unit">pcs</span>
+                </div>
+            </div>
+            <div class="retail-stat-total-ref">${totalReturned} total pcs</div>
+        `;
+        document.getElementById('retail-stat-sold').innerHTML = `
+            <div class="retail-stat-detailed">
+                <div class="retail-stat-det-item">
+                    <span class="retail-stat-det-num">${totalSoldCases}</span>
+                    <span class="retail-stat-det-unit">cases</span>
+                </div>
+                <div class="retail-stat-det-divider"></div>
+                <div class="retail-stat-det-item">
+                    <span class="retail-stat-det-num">${totalSoldPieces}</span>
+                    <span class="retail-stat-det-unit">pcs</span>
+                </div>
+            </div>
+            <div class="retail-stat-total-ref">${totalSold >= 0 ? totalSold : 0} total pcs</div>
+        `;
 
         // Render product breakdown
         const breakdownList = document.getElementById('retail-breakdown-list');
@@ -929,21 +968,45 @@
                     <div class="retail-breakdown-numbers">
                         <div class="retail-breakdown-num">
                             <span class="retail-num-label">Taken</span>
-                            <span class="retail-num-value retail-num-taken">${data.taken}
-                                <span style="display: block; font-size: 0.72rem; font-weight: normal; color: var(--text-muted); margin-top: 2px;">(${takenCases}c ${takenPcs}p)</span>
-                            </span>
+                            <div class="retail-breakdown-value-container">
+                                <div class="retail-breakdown-value-col">
+                                    <span class="retail-breakdown-value-num retail-num-taken">${takenCases}</span>
+                                    <span class="retail-breakdown-value-unit">cases</span>
+                                </div>
+                                <div class="retail-breakdown-value-col">
+                                    <span class="retail-breakdown-value-num retail-num-taken">${takenPcs}</span>
+                                    <span class="retail-breakdown-value-unit">pcs</span>
+                                </div>
+                            </div>
+                            <div class="retail-breakdown-total-ref">${data.taken} total pcs</div>
                         </div>
                         <div class="retail-breakdown-num">
                             <span class="retail-num-label">Returned</span>
-                            <span class="retail-num-value retail-num-returned">${data.returned}
-                                <span style="display: block; font-size: 0.72rem; font-weight: normal; color: var(--text-muted); margin-top: 2px;">(${returnedCases}c ${returnedPcs}p)</span>
-                            </span>
+                            <div class="retail-breakdown-value-container">
+                                <div class="retail-breakdown-value-col">
+                                    <span class="retail-breakdown-value-num retail-num-returned">${returnedCases}</span>
+                                    <span class="retail-breakdown-value-unit">cases</span>
+                                </div>
+                                <div class="retail-breakdown-value-col">
+                                    <span class="retail-breakdown-value-num retail-num-returned">${returnedPcs}</span>
+                                    <span class="retail-breakdown-value-unit">pcs</span>
+                                </div>
+                            </div>
+                            <div class="retail-breakdown-total-ref">${data.returned} total pcs</div>
                         </div>
                         <div class="retail-breakdown-num">
                             <span class="retail-num-label">Sold</span>
-                            <span class="retail-num-value retail-num-sold">${sold >= 0 ? sold : 0}
-                                <span style="display: block; font-size: 0.72rem; font-weight: normal; color: var(--text-muted); margin-top: 2px;">(${soldCases}c ${soldPcs}p)</span>
-                            </span>
+                            <div class="retail-breakdown-value-container">
+                                <div class="retail-breakdown-value-col">
+                                    <span class="retail-breakdown-value-num retail-num-sold">${soldCases}</span>
+                                    <span class="retail-breakdown-value-unit">cases</span>
+                                </div>
+                                <div class="retail-breakdown-value-col">
+                                    <span class="retail-breakdown-value-num retail-num-sold">${soldPcs}</span>
+                                    <span class="retail-breakdown-value-unit">pcs</span>
+                                </div>
+                            </div>
+                            <div class="retail-breakdown-total-ref">${sold >= 0 ? sold : 0} total pcs</div>
                         </div>
                     </div>
                     <div class="retail-breakdown-bar">
