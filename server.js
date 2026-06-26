@@ -25,7 +25,7 @@ const ROOT = __dirname;
 const DB_PATH = path.join(__dirname, 'db.json');
 const MONGODB_URI = process.env.MONGODB_URI || '';   // if set -> use MongoDB Atlas
 const MONGODB_DB = process.env.MONGODB_DB || 'stockflow';
-const USE_MONGO = !!MONGODB_URI;
+let USE_MONGO = !!MONGODB_URI;
 const TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 7;          // 7 days
 
 const MIME_TYPES = {
@@ -120,13 +120,13 @@ function addAudit(auth, action, details = {}) {
 async function connectMongo() {
     const { MongoClient } = require('mongodb');
     const client = new MongoClient(MONGODB_URI, {
-        serverSelectionTimeoutMS: 10000,
-        connectTimeoutMS: 10000,
+        serverSelectionTimeoutMS: 5000,
+        connectTimeoutMS: 5000,
         socketTimeoutMS: 45000,
         appName: 'aashika-bhaweheshwor-stock-manager',
     });
 
-    const maxAttempts = 5;
+    const maxAttempts = 3;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
             await client.connect();
@@ -134,9 +134,14 @@ async function connectMongo() {
             console.log('  Storage: MongoDB Atlas connected');
             return;
         } catch (e) {
-            if (attempt === maxAttempts) throw e;
+            console.warn(`  MongoDB connection failed (attempt ${attempt}/${maxAttempts}): ${e.message}`);
+            if (attempt === maxAttempts) {
+                console.warn(`  --> FALLING BACK to local file storage (db.json)`);
+                USE_MONGO = false;
+                return;
+            }
             const waitMs = 1000 * attempt;
-            console.warn(`  MongoDB connection failed (attempt ${attempt}/${maxAttempts}). Retrying in ${waitMs}ms: ${e.message}`);
+            console.warn(`  Retrying in ${waitMs}ms...`);
             await new Promise(resolve => setTimeout(resolve, waitMs));
         }
     }
