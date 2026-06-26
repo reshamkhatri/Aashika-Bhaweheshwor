@@ -416,12 +416,15 @@ function buildPeriodicReport(type, dateVal, monthVal) {
     }).slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
     const summaryRows = [];
-    summaryRows.push(["AASHIKA BHAWEHESHWOR STOCK MANAGER"]);
-    summaryRows.push([`${type.toUpperCase()} TRANSACTION REPORT`]);
-    summaryRows.push([`Period: ${periodStr}`]);
-    summaryRows.push([]);
-    summaryRows.push(["TRANSACTION TYPE SUMMARY"]);
+    summaryRows.push(["AASHIKA BHAWEHESHWOR STOCK MANAGER", "", "", ""]);
+    summaryRows.push([`${type.toUpperCase()} TRANSACTION REPORT`, "", "", ""]);
+    summaryRows.push([`Period: ${periodStr}`, "", "", ""]);
+    summaryRows.push(["", "", "", ""]);
+    
+    summaryRows.push(["SYSTEM-WIDE TRANSACTION SUMMARY", "", "", ""]);
+    summaryRows.push(["----------------------------------------------------------------------", "", "", ""]);
     summaryRows.push(["Transaction Type", "Cases", "Pieces", "Total Equivalent Pcs"]);
+    summaryRows.push(["----------------------------------------------------------------------", "", "", ""]);
 
     const getSums = (types) => {
         let cases = 0;
@@ -448,10 +451,13 @@ function buildPeriodicReport(type, dateVal, monthVal) {
     summaryRows.push(["Daily Retailing Takeout", retailOutSums.cases, retailOutSums.pieces, retailOutSums.total]);
     summaryRows.push(["Daily Retailing Returns", retailInSums.cases, retailInSums.pieces, retailInSums.total]);
     summaryRows.push(["Leakage / Breakage Loss", leakSums.cases, leakSums.pieces, leakSums.total]);
+    summaryRows.push(["----------------------------------------------------------------------", "", "", ""]);
 
-    summaryRows.push([]);
-    summaryRows.push(["BRAND-WISE DISPATCH PERFORMANCE (SALES)"]);
+    summaryRows.push(["", "", "", ""]);
+    summaryRows.push(["BRAND-WISE DISPATCH PERFORMANCE (SALES)", "", "", ""]);
+    summaryRows.push(["----------------------------------------------------------------------", "", "", ""]);
     summaryRows.push(["Brand Name", "Total Cases Sold", "Total Pieces Sold", "Total Equivalent Pcs"]);
+    summaryRows.push(["----------------------------------------------------------------------", "", "", ""]);
 
     const brandData = {};
     list.forEach(d => {
@@ -477,11 +483,22 @@ function buildPeriodicReport(type, dateVal, monthVal) {
             summaryRows.push([brand, data.cases, data.pieces, data.total]);
         });
     }
+    summaryRows.push(["----------------------------------------------------------------------", "", "", ""]);
 
     const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
-    const maxCols = summaryRows.reduce((max, r) => Math.max(max, r.length), 0);
-    wsSummary['!cols'] = Array(maxCols).fill({ wch: 24 });
-    wsSummary['!cols'][0] = { wch: 32 };
+    
+    wsSummary['!cols'] = [
+        { wch: 30 }, 
+        { wch: 12 }, 
+        { wch: 12 }, 
+        { wch: 22 }  
+    ];
+
+    wsSummary['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } },
+        { s: { r: 2, c: 0 }, e: { r: 2, c: 3 } }
+    ];
 
     XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary Dashboard');
 

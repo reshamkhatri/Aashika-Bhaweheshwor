@@ -142,6 +142,7 @@
 
         // Full data export is admin-only.
         document.getElementById('btn-export-data').style.display = isAdmin() ? 'flex' : 'none';
+        document.getElementById('btn-sidebar-reports').style.display = isAdmin() ? 'flex' : 'none';
 
         // Show logout button
         document.getElementById('btn-logout').style.display = 'flex';
@@ -1935,13 +1936,38 @@
             reader.readAsDataURL(file);
         });
 
-        // Report range toggle
-        const reportRangeSelect = document.getElementById('report-range');
-        if (reportRangeSelect) {
-            reportRangeSelect.addEventListener('change', (e) => {
+        // Sidebar Report modal triggers
+        const btnSidebarReports = document.getElementById('btn-sidebar-reports');
+        if (btnSidebarReports) {
+            btnSidebarReports.addEventListener('click', () => {
+                document.getElementById('modal-report-date').value = getToday();
+                document.getElementById('modal-report-month').value = getToday().substring(0, 7);
+                document.getElementById('reports-modal-overlay').style.display = 'flex';
+            });
+        }
+
+        // Close reports modal
+        const closeReportsBtn = document.getElementById('btn-close-reports-modal');
+        if (closeReportsBtn) {
+            closeReportsBtn.addEventListener('click', () => {
+                document.getElementById('reports-modal-overlay').style.display = 'none';
+            });
+        }
+
+        const cancelReportsBtn = document.getElementById('btn-cancel-reports-modal');
+        if (cancelReportsBtn) {
+            cancelReportsBtn.addEventListener('click', () => {
+                document.getElementById('reports-modal-overlay').style.display = 'none';
+            });
+        }
+
+        // Report range toggle inside modal
+        const modalReportRangeSelect = document.getElementById('modal-report-range');
+        if (modalReportRangeSelect) {
+            modalReportRangeSelect.addEventListener('change', (e) => {
                 const range = e.target.value;
-                const dateContainer = document.getElementById('report-date-container');
-                const monthContainer = document.getElementById('report-month-container');
+                const dateContainer = document.getElementById('modal-report-date-container');
+                const monthContainer = document.getElementById('modal-report-month-container');
                 if (range === 'monthly') {
                     dateContainer.style.display = 'none';
                     monthContainer.style.display = 'block';
@@ -1952,13 +1978,14 @@
             });
         }
 
-        // Report download submission
-        const downloadReportBtn = document.getElementById('admin-btn-download-report');
-        if (downloadReportBtn) {
-            downloadReportBtn.addEventListener('click', async () => {
-                const range = document.getElementById('report-range').value;
-                const dateVal = document.getElementById('report-date').value;
-                const monthVal = document.getElementById('report-month').value;
+        // Report download submission inside modal
+        const reportForm = document.getElementById('periodic-report-form');
+        if (reportForm) {
+            reportForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const range = document.getElementById('modal-report-range').value;
+                const dateVal = document.getElementById('modal-report-date').value;
+                const monthVal = document.getElementById('modal-report-month').value;
 
                 if ((range === 'daily' || range === 'weekly') && !dateVal) {
                     showToast('Please select a date first', 'warning');
@@ -1970,6 +1997,7 @@
                 }
 
                 await downloadPeriodicExcel(range, dateVal, monthVal);
+                document.getElementById('reports-modal-overlay').style.display = 'none';
             });
         }
     }
@@ -1980,16 +2008,6 @@
     async function init() {
         // Set date in header
         document.getElementById('header-date').textContent = formatDate(new Date().toISOString());
-
-        // Initialize Periodic Report date pickers
-        const reportDateInput = document.getElementById('report-date');
-        const reportMonthInput = document.getElementById('report-month');
-        if (reportDateInput) {
-            reportDateInput.value = getToday();
-        }
-        if (reportMonthInput) {
-            reportMonthInput.value = getToday().substring(0, 7);
-        }
 
         bindEvents();
 
