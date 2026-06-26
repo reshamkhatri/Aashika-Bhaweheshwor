@@ -861,10 +861,33 @@
 
         const totalSold = totalTaken - totalReturned;
 
-        // Update stat cards
-        document.getElementById('retail-stat-taken').textContent = totalTaken + ' pcs';
-        document.getElementById('retail-stat-returned').textContent = totalReturned + ' pcs';
-        document.getElementById('retail-stat-sold').textContent = (totalSold >= 0 ? totalSold : 0) + ' pcs';
+        // Calculate cases and pieces breakdown for summary cards
+        let totalTakenCases = 0;
+        let totalTakenPieces = 0;
+        let totalReturnedCases = 0;
+        let totalReturnedPieces = 0;
+        let totalSoldCases = 0;
+        let totalSoldPieces = 0;
+
+        Object.keys(productMap).forEach(pid => {
+            const data = productMap[pid];
+            const p = data.product;
+            const sold = Math.max(0, data.taken - data.returned);
+            
+            totalTakenCases += Math.floor(data.taken / p.piecesPerCase);
+            totalTakenPieces += data.taken % p.piecesPerCase;
+            
+            totalReturnedCases += Math.floor(data.returned / p.piecesPerCase);
+            totalReturnedPieces += data.returned % p.piecesPerCase;
+            
+            totalSoldCases += Math.floor(sold / p.piecesPerCase);
+            totalSoldPieces += sold % p.piecesPerCase;
+        });
+
+        // Update stat cards with detailed cases/pieces breakdown
+        document.getElementById('retail-stat-taken').innerHTML = `${totalTaken} pcs <span style="display:block; font-size:0.75rem; color:rgba(255,255,255,0.6); font-weight:normal; margin-top:4px;">(${totalTakenCases} c, ${totalTakenPieces} p)</span>`;
+        document.getElementById('retail-stat-returned').innerHTML = `${totalReturned} pcs <span style="display:block; font-size:0.75rem; color:rgba(255,255,255,0.6); font-weight:normal; margin-top:4px;">(${totalReturnedCases} c, ${totalReturnedPieces} p)</span>`;
+        document.getElementById('retail-stat-sold').innerHTML = `${totalSold >= 0 ? totalSold : 0} pcs <span style="display:block; font-size:0.75rem; color:rgba(255,255,255,0.6); font-weight:normal; margin-top:4px;">(${totalSoldCases} c, ${totalSoldPieces} p)</span>`;
 
         // Render product breakdown
         const breakdownList = document.getElementById('retail-breakdown-list');
@@ -884,6 +907,14 @@
             const p = data.product;
             const sold = data.taken - data.returned;
             const soldPct = data.taken > 0 ? Math.round((sold / data.taken) * 100) : 0;
+            
+            const takenCases = Math.floor(data.taken / p.piecesPerCase);
+            const takenPcs = data.taken % p.piecesPerCase;
+            const returnedCases = Math.floor(data.returned / p.piecesPerCase);
+            const returnedPcs = data.returned % p.piecesPerCase;
+            const soldCases = Math.floor((sold >= 0 ? sold : 0) / p.piecesPerCase);
+            const soldPcs = (sold >= 0 ? sold : 0) % p.piecesPerCase;
+
             return `
                 <div class="retail-breakdown-item">
                     <div class="retail-breakdown-product">
@@ -898,15 +929,21 @@
                     <div class="retail-breakdown-numbers">
                         <div class="retail-breakdown-num">
                             <span class="retail-num-label">Taken</span>
-                            <span class="retail-num-value retail-num-taken">${data.taken}</span>
+                            <span class="retail-num-value retail-num-taken">${data.taken}
+                                <span style="display: block; font-size: 0.72rem; font-weight: normal; color: var(--text-muted); margin-top: 2px;">(${takenCases}c ${takenPcs}p)</span>
+                            </span>
                         </div>
                         <div class="retail-breakdown-num">
                             <span class="retail-num-label">Returned</span>
-                            <span class="retail-num-value retail-num-returned">${data.returned}</span>
+                            <span class="retail-num-value retail-num-returned">${data.returned}
+                                <span style="display: block; font-size: 0.72rem; font-weight: normal; color: var(--text-muted); margin-top: 2px;">(${returnedCases}c ${returnedPcs}p)</span>
+                            </span>
                         </div>
                         <div class="retail-breakdown-num">
                             <span class="retail-num-label">Sold</span>
-                            <span class="retail-num-value retail-num-sold">${sold >= 0 ? sold : 0}</span>
+                            <span class="retail-num-value retail-num-sold">${sold >= 0 ? sold : 0}
+                                <span style="display: block; font-size: 0.72rem; font-weight: normal; color: var(--text-muted); margin-top: 2px;">(${soldCases}c ${soldPcs}p)</span>
+                            </span>
                         </div>
                     </div>
                     <div class="retail-breakdown-bar">
